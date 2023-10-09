@@ -129,6 +129,15 @@ gtsummary::tbl_regression(
 
 ## Models for cannabis use at 11 and 15 years old
 
+We fitted a logistic model (estimated using ML) to predict bipolar disorder with
+cannabis use at 11 years old (formula: $BD$ \~ $cannabis\ at\ 11$). The model's
+explanatory power is very weak (Tjur's $R^2$ = 1.38e-03). The model's intercept,
+corresponding to cannabis at 11 = No, is at -3.80 (95% CI [-4.04, -3.58], $p$ <
+.001). The effect of cannabis at 11 [Yes] is statistically non-significant and
+positive ($\beta$ = 2.01, 95% CI [-0.94, 3.79], $p$ = 0.064; $B$ = 2.01, 95% CI
+[-0.94, 3.79]; OR = 7.46, 95% CI [0.39, 44.38]). The model is summarized at the
+table below.
+
 ```{r crude-cannabis-11}
 cannabis_11_bd_fit <- glm(outcome ~ cannabis_at_11,
                        data = df_model,
