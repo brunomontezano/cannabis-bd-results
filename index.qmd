@@ -1,0 +1,164 @@
+---
+title: "Is cannabis associated with bipolar disorder?"
+author:
+  - name: Bruno Braga Montezano
+    id: bbm
+    orcid: https://orcid.org/0000-0002-4627-1776
+    email: bmontezano@hcpa.edu.br
+    affiliation: 
+      - name: Federal University of Rio Grande do Sul
+        city: Porto Alegre
+        state: RS
+        url: https://www.ufrgs.br/ppgpsiquiatria/en/home-english/
+date: today
+format: html
+theme: journal
+number-depth: 1
+highlight-style: github
+execute: 
+  echo: false
+---
+
+```{r load-packages}
+#| warning: false
+#| message: false
+library(tidyverse)
+```
+
+```{r read-data}
+df <- read_rds("data/data_bd_cannabis_2023_10_09.rds")
+```
+
+# Methods
+
+In order to summarize the exposure variables, we used a descriptive table with
+absolute and relative frequencies of the categorical variables and presented
+mean with standard deviations and median with minimum and maximum values for
+numeric variables. The bivariate analyses were performed with Student’s $t$-tests,
+$\chi$-squared tests, Fisher's exact test and Mann-Whitney $U$ tests depending on the
+variables distributions.
+
+We built binomial logistic models to assess the effects for bipolar disorder
+incidence at 22 years old in the studied exposures, controlling for the other
+variables. Considering multicollinearity in regression analysis can be a problem
+since variables wouldn’t provide independent or unique information, we used
+variance inflation factor (VIF) to measure the correlations between the
+predictors in the model (Fox et al., 1992). We considered a VIF of 4 or greater
+as threshold to classify a predictor estimate as non-reliable.
+
+All analyses were conducted through scripts written in the R programming
+language (version 4.3.1). Additional information on the present R session is
+available at the end of the page.
+
+# Results
+
+
+```{r select-columns}
+df_model <- df |> 
+  select(
+    outcome = bd_any,
+    subtype = bd_subtype,
+    sex = sexonovo,
+    skin_color = jcorpel5,
+    asset_index = kibem,
+    asset_index_quintiles = kibem5,
+    physical_abuse = hc13,
+    cannabis_at_11 = hc06m,
+    cannabis_at_15 = jc11d,
+    cannabis_at_18 = kc05,
+    cannabis_at_18_frequency = maconha_freq,
+    cocaine_at_18 = kc09
+  )
+```
+
+## Missing data visualization
+
+```{r plot-missing-data}
+plot_missing_data <- DataExplorer::plot_missing(df_model,
+                           ggtheme = theme_classic(12, "IBM Plex Sans"),
+                           geom_label_args = list("family" = "IBM Plex Sans",
+                                                  "size" = 2.5),
+                           theme_config = list(legend.position = "none"))
+```
+
+## Crude models for cannabis and cocaine at 18 years old
+
+We fitted a logistic model (estimated using ML) to predict bipolar disorder with
+lifetime cannabis use at 18 years old (formula: $BD$ \~ $cannabis$). The model's
+explanatory power is very weak (Tjur's $R^2$ = 1.81e-03). The model's intercept,
+corresponding to cannabis = No, is at -3.92 (95% CI [-4.21,
+-3.65], $p$ < .001). The effect of cannabis use at 18 [Yes] is
+statistically significant and positive ($\beta$ = 0.60, 95% CI [0.10, 1.08], $p$
+= 0.016; $B$ = 0.60, 95% CI [0.10, 1.08]; OR = 1.82, 95% CI [1.10, 2.93]).
+
+We also fitted a logistic model (estimated using ML) to predict bipolar disorder
+with lifetime cocaine use at 18 years old (formula: $BD$ \~ $cocaine$). The
+model's explanatory power is very weak (Tjur's $R^2$ = 1.47e-03). The model's
+intercept, corresponding to cocaine = No, is at -3.83 (95% CI [-4.09, -3.59],
+$p$ < .001). The effect of cocaine use at 18 [Yes] is statistically significant
+and positive ($\beta$ = 0.67, 95% CI [0.02, 1.25], $p$ = 0.030; $B$ = 0.67, 95%
+CI [0.02, 1.25]; OR = 1.96, 95% CI [1.02, 3.49]).
+
+These results are summarized in the tables below.
+
+```{r crude-substance-at-18}
+cannabis_bd_fit <- glm(outcome ~ cannabis_at_18,
+                       data = df_model,
+                       family = binomial)
+
+gtsummary::tbl_regression(
+  cannabis_bd_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use")
+) |>
+  gtsummary::as_gt() |>
+  gt::tab_caption("Crude model of lifetime cannabis use at 18 years old and bipolar disorder onset at 22 years old.")
+
+cocaine_bd_fit <- glm(outcome ~ cocaine_at_18,
+                       data = df_model,
+                       family = binomial)
+
+gtsummary::tbl_regression(
+  cocaine_bd_fit,
+  exponentiate = TRUE,
+  label = list(cocaine_at_18 ~ "Lifetime cocaine use")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Crude model of lifetime cocaine use at 18 years old and bipolar disorder onset at 22 years old.")
+```
+
+## Models for cannabis use at 11 and 15 years old
+
+```{r crude-cannabis-11}
+cannabis_11_bd_fit <- glm(outcome ~ cannabis_at_11,
+                       data = df_model,
+                       family = binomial)
+
+gtsummary::tbl_regression(
+  cannabis_11_bd_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_11 ~ "Lifetime cannabis use")
+) |>
+  gtsummary::as_gt() |>
+  gt::tab_caption("Crude model of lifetime cannabis use at 11 years old and bipolar disorder onset at 22 years old.")
+```
+
+The lifetime cannabis use at 15 years old is not available to be modelled because
+there are no subjects with positive instances on the outcome and exposure and the
+model will not fit.
+
+```{r count-cannabis-15-bd}
+df_model |> 
+  count(outcome, cannabis_at_15) |> 
+  rename(Outcome = outcome,
+         `Cannabis at 15` = cannabis_at_15) |> 
+  gt::gt(caption = "Count unique values based on outcome (bipolar disorder at
+         22 years old) and cannabis use at 15 years old.")
+```
+
+# Session information
+
+```{r session-info}
+sessioninfo::session_info()
+```
+
