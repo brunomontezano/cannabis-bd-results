@@ -14,6 +14,7 @@ date: today
 format: html
 theme: journal
 number-depth: 1
+table-of-contents: true
 highlight-style: github
 execute: 
   echo: false
@@ -155,9 +156,10 @@ gtsummary::tbl_regression(
 ## What about adjusted models for lifetime cannabis use at 18 years old?
 
 Since the crude (non-adjusted) model was significant, we may follow it up with
-an adjusted analysis.
+an adjusted analysis. The results below are the adjusted model for sex, skin color,
+and socioeconomic status (asset index quintiles).
 
-```{r cannabis-adjusted-analysis}
+```{r cannabis-adjusted-1}
 cannabis_asset_sex_skin_color_fit <- glm(
   outcome ~ cannabis_at_18 + asset_index_quintiles + sex + skin_color,
   data = df_model,
@@ -177,6 +179,61 @@ gtsummary::tbl_regression(
                   Adjusted for socioeconomic status, sex, and skin color.")
 ```
 
+Then, we added physical abuse by parents and lifetime cocaine use as well in
+the previous model from the table above.
+
+```{r cannabis-adjusted-2}
+cannabis_abuse_fit <- glm(
+  outcome ~ cannabis_at_18 + asset_index_quintiles + sex + skin_color +
+    physical_abuse,
+  data = df_model,
+  family = binomial
+)
+
+gtsummary::tbl_regression(
+  cannabis_abuse_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use",
+               asset_index_quintiles ~ "Socioeconomic status",
+               sex ~ "Sex",
+               skin_color ~ "Skin color",
+               physical_abuse ~ "Physical abuse by parents")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Adjusted model for lifetime cannabis use at 18 years old.
+                  Adjusted for socioeconomic status, sex, skin color,
+                  and also physical abuse by parents.")
+```
+
+Finally, we added lifetime cocaine use as well for the last adjusted model.
+
+```{r cannabis-adjusted-3}
+cannabis_cocaine_fit <- glm(
+  outcome ~ cannabis_at_18 + asset_index_quintiles + sex + skin_color +
+    physical_abuse + cocaine_at_18,
+  data = df_model,
+  family = binomial
+)
+
+gtsummary::tbl_regression(
+  cannabis_cocaine_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use",
+               asset_index_quintiles ~ "Socioeconomic status",
+               sex ~ "Sex",
+               skin_color ~ "Skin color",
+               physical_abuse ~ "Physical abuse by parents",
+               cocaine_at_18 ~ "Lifetime cocaine use")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Adjusted model for lifetime cannabis use at 18 years old.
+                  Adjusted for socioeconomic status, sex, skin color,
+                  physical abuse by parents, and also lifetime cocaine
+                  use.")
+```
+
+In conclusion, lifetime cannabis use just became not significant after the
+inclusion of lifetime cocaine use in the adjusted model.
 
 ## What about cannabis use at 11 (and 15) years old?
 
