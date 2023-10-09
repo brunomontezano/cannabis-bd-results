@@ -52,7 +52,6 @@ available at the end of the page.
 
 # Results
 
-
 ```{r select-columns}
 df_model <- df |> 
   select(
@@ -71,6 +70,32 @@ df_model <- df |>
   )
 ```
 
+## How is the bipolar disorder (BD) outcome distributed?
+
+Eighty-seven participants (2.3%) were diagnosed with bipolar disorder at
+follow-up, of which, 76 (2.04%) had a diagnosis for bipolar disorder type I and
+11 (0.3%) for bipolar disorder type II.
+
+```{r plot-outcome-dist}
+df_model |> 
+  mutate(subtype = if_else(subtype == "NOS", "Not BD", subtype)) |> 
+  count(outcome, subtype) |> 
+  ggplot(aes(x = outcome, y = n, fill = subtype)) +
+  geom_col() +
+  scale_y_continuous(labels = \(x) format(x, big.mark = ",")) +
+  theme_classic(12, "IBM Plex Sans") +
+  ggsci::scale_fill_jama() +
+  labs(x = "Bipolar disorder at 22 years old",
+       y = "# of subjects",
+       fill = "BD subtype") +
+  annotate("text", y = 2600, x = 2,
+           label = "Not BD: 3,625\nType 1: 76\nType 2: 11",
+           family = "IBM Plex Sans",
+           size = 4) +
+  theme(legend.position = "top")
+```
+
+
 ## Missing data visualization
 
 ```{r plot-missing-data}
@@ -81,7 +106,7 @@ plot_missing_data <- DataExplorer::plot_missing(df_model,
                            theme_config = list(legend.position = "none"))
 ```
 
-## Crude models for cannabis and cocaine at 18 years old
+## Are cannabis and cocaine use associated with bipolar disorder?
 
 We fitted a logistic model (estimated using ML) to predict bipolar disorder with
 lifetime cannabis use at 18 years old (formula: $BD$ \~ $cannabis$). The model's
@@ -127,7 +152,33 @@ gtsummary::tbl_regression(
   gt::tab_caption("Crude model of lifetime cocaine use at 18 years old and bipolar disorder onset at 22 years old.")
 ```
 
-## Models for cannabis use at 11 and 15 years old
+## What about adjusted models for lifetime cannabis use at 18 years old?
+
+Since the crude (non-adjusted) model was significant, we may follow it up with
+an adjusted analysis.
+
+```{r cannabis-adjusted-analysis}
+cannabis_asset_sex_skin_color_fit <- glm(
+  outcome ~ cannabis_at_18 + asset_index_quintiles + sex + skin_color,
+  data = df_model,
+  family = binomial
+)
+
+gtsummary::tbl_regression(
+  cannabis_asset_sex_skin_color_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use",
+               asset_index_quintiles ~ "Socioeconomic status",
+               sex ~ "Sex",
+               skin_color ~ "Skin color")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Adjusted model for lifetime cannabis use at 18 years old.
+                  Adjusted for socioeconomic status, sex, and skin color.")
+```
+
+
+## What about cannabis use at 11 (and 15) years old?
 
 We fitted a logistic model (estimated using ML) to predict bipolar disorder with
 cannabis use at 11 years old (formula: $BD$ \~ $cannabis\ at\ 11$). The model's
@@ -165,7 +216,35 @@ df_model |>
          22 years old) and cannabis use at 15 years old.")
 ```
 
-# Session information
+## What about the effect of having used cocaine or cannabis at age 18?
+
+We built another generalized linear model to estimate whether cannabis or
+cocaine lifetime use as a unique feature could predict bipolar disorder.
+The result is reported in the table below.
+
+```{r aggregate-effect-cannabis-cocaine}
+df_agg <- df_model |> 
+  mutate(agg_sub = factor(case_when(
+    cannabis_at_18 == "Yes" & cocaine_at_18 == "Yes" ~ "Yes",
+    cannabis_at_18 == "Yes" & cocaine_at_18 == "No" ~ "Yes",
+    cannabis_at_18 == "No" & cocaine_at_18 == "Yes" ~ "Yes",
+    cannabis_at_18 == "No" & cocaine_at_18 == "No" ~ "No"
+  )))
+
+sub_or_fit <- glm(outcome ~ agg_sub,
+                       data = df_agg,
+                       family = binomial)
+
+gtsummary::tbl_regression(
+  sub_or_fit,
+  exponentiate = TRUE
+) |>
+  gtsummary::as_gt() |>
+  gt::tab_caption("Crude model of aggregate effect of cocaine and cannabis at 18 years old and bipolar disorder onset at 22 years old.")
+```
+
+
+# Session information for reprodutibility purposes
 
 ```{r session-info}
 sessioninfo::session_info()
