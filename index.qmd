@@ -96,6 +96,28 @@ df_model |>
   theme(legend.position = "top")
 ```
 
+## Firstly, we'll create the main descriptive table
+
+```{r descriptive-table}
+df_model |> 
+  gtsummary::tbl_summary(
+    by = outcome,
+    label = list(
+      subtype ~ "BD subtype",
+      sex ~ "Sex",
+      skin_color ~ "Skin color",
+      asset_index_quintiles ~ "Socioeconomic status at 18 years old (1: poorest; 5: wealthiest)",
+      physical_abuse ~ "Physical abuse by parents (at 11 years old)",
+      cannabis_at_11 ~ "Cannabis use (at 11 years old)",
+      cannabis_at_15 ~ "Cannabis use (at 15 years old)",
+      cannabis_at_18 ~ "Lifetime cannabis use (at 18 years old)",
+      cannabis_at_18_frequency ~ "Cannabis use frequency (at 18 years old)",
+      cocaine_at_18 ~ "Lifetime cocaine use (at 18 years old)"
+    ),
+    include = c(-asset_index)
+  )
+```
+
 
 ## Missing data visualization
 
