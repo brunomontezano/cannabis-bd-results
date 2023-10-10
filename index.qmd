@@ -98,6 +98,10 @@ df_model |>
 
 ## Firstly, we'll create the main descriptive table
 
+For the $p$-values, `chisq.test.no.correct` was used for categorical variables
+with all expected cell counts $\geq 5$, and `fisher.test` for categorical
+variables with any expected cell count $< 5$.
+
 ```{r descriptive-table}
 df_model |> 
   gtsummary::tbl_summary(
@@ -115,7 +119,8 @@ df_model |>
       cocaine_at_18 ~ "Lifetime cocaine use (at 18 years old)"
     ),
     include = c(-asset_index)
-  )
+  ) |> 
+  gtsummary::add_p()
 ```
 
 
