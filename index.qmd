@@ -104,6 +104,12 @@ variables with any expected cell count $< 5$.
 
 ```{r descriptive-table}
 df_model |> 
+  mutate(
+    cannabis_at_18_frequency = fct_relevel(
+      cannabis_at_18_frequency, c("Never", "Experimented", "Used in the past",
+                                  "Sometimes", "Weekends", "Daily")
+    )
+  ) |> 
   gtsummary::tbl_summary(
     by = outcome,
     label = list(
@@ -120,7 +126,8 @@ df_model |>
     ),
     include = c(-asset_index)
   ) |> 
-  gtsummary::add_p()
+  gtsummary::add_p() |> 
+  gtsummary::add_overall()
 ```
 
 
