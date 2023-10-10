@@ -235,6 +235,305 @@ gtsummary::tbl_regression(
 In conclusion, lifetime cannabis use just became not significant after the
 inclusion of lifetime cocaine use in the adjusted model.
 
+## Based on previous analyses, we considered to try an approach based on stratification by sex and parental spanking
+
+First, the model stratified by sex. The models are presented in the tables below.
+
+```{r strat-sex}
+df_male <- df_model |> filter(sex == "Male")
+df_female <- df_model |> filter(sex == "Female")
+
+male_fit <- glm(
+  outcome ~ cannabis_at_18,
+  data = df_male,
+  family = binomial
+)
+
+female_fit <- glm(
+  outcome ~ cannabis_at_18,
+  data = df_female,
+  family = binomial
+)
+
+gtsummary::tbl_regression(
+  male_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Crude model for lifetime cannabis use at 18 years old in bipolar disorder onset using a male subset.")
+
+gtsummary::tbl_regression(
+  female_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Crude model for lifetime cannabis use at 18 years old in bipolar disorder onset using a female subset.")
+```
+
+In the following tables, we present the results on stratification by physical
+abuse by parents.
+
+```{r strat-physical-abuse}
+df_abuse <- df_model |> filter(physical_abuse == "Yes")
+df_not_abuse <- df_model |> filter(physical_abuse == "No")
+
+abuse_fit <- glm(
+  outcome ~ cannabis_at_18,
+  data = df_abuse,
+  family = binomial
+)
+
+not_abuse_fit <- glm(
+  outcome ~ cannabis_at_18,
+  data = df_not_abuse,
+  family = binomial
+)
+
+gtsummary::tbl_regression(
+  abuse_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Crude model for lifetime cannabis use at 18 years old in bipolar disorder onset using a subset of subjects that were exposed to physical abuse by parents.")
+
+gtsummary::tbl_regression(
+  not_abuse_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Crude model for lifetime cannabis use at 18 years old in bipolar disorder onset using a subset of subjects that were not exposed to physical abuse by parents.")
+```
+
+We also tested for binary logistic regression models with interaction terms between
+cannabis and sex/physical abuse by parents and there was no significant result,
+besides the standalone lifetime cannabis use parameter in the physical abuse model.
+You can check the results in a detailed manner in the tables below.
+
+```{r interaction-sex-physical-abuse}
+sex_inter_fit <- glm(
+  outcome ~ cannabis_at_18 * sex,
+  data = df_model,
+  family = binomial
+)
+
+abuse_inter_fit <- glm(
+  outcome ~ cannabis_at_18 * physical_abuse,
+  data = df_model,
+  family = binomial
+)
+
+gtsummary::tbl_regression(
+  sex_inter_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use",
+               sex ~ "Sex")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Logistic regression with interaction term for lifetime cannabis use at 18 years old and sex.")
+
+gtsummary::tbl_regression(
+  abuse_inter_fit,
+  exponentiate = TRUE,
+  label = list(cannabis_at_18 ~ "Lifetime cannabis use",
+               physical_abuse ~ "Physical abuse by parents")
+) |> 
+  gtsummary::as_gt() |> 
+  gt::tab_caption("Logistic regression with interaction term for lifetime cannabis use at 18 years old and physical abuse by parents.")
+```
+
+## Can the risk of lifetime cannabis use in bipolar disorder vary depending on the frequency of use?
+
+The effect of cannabis use frequency at 18 [Yes (use on weekends or
+daily)] is statistically non-significant and positive (OR = 2.68, 95% CI
+[0.80, 6.72], $p$ = 0.062).
+
+```{r cannabis-freq}
+#| message: false
+#| warning: false
+df_freq <- df_model |> 
+  mutate(cannabis_at_18_frequency = fct_relevel(
+    cannabis_at_18_frequency, c("Never", "Experimented", "Used in the past",
+                                "Sometimes", "Weekends", "Daily")
+  )) |> 
+  mutate(
+    cannabis_at_18_frequency_dic = case_when(
+      cannabis_at_18_frequency %in% c("Never",
+                                      "Experimented",
+                                      "Sometimes",
+                                      "Used in the past") ~ "No (never used, experimented once, sometimes, used in the past)",
+      cannabis_at_18_frequency %in% c("Daily", "Weekends") ~ "Yes (use on weekends or daily)"
+    ) |> factor()
+  ) |> 
+  labelled::set_variable_labels(
+    cannabis_at_18_frequency = "Cannabis use frequency (at 18 years old)",
+    cannabis_at_18_frequency_dic = "Cannabis use frequency (at 18 years old)"
+  )
+
+freq_fit <- glm(
+  outcome ~ cannabis_at_18_frequency_dic,
+  data = df_freq,
+  family = binomial
+)
+
+ggstats::ggcoef_model(freq_fit,
+                      exponentiate = TRUE) +
+  theme(text = element_text(size = 12, family = "IBM Plex Sans")) +
+  scale_y_discrete(labels = scales::label_wrap(15))
+```
+
+
+## Does cannabis use at 18 years old mediate the effect of sex, skin color or socioeconomic status in young adults?
+
+After evaluating it in three separate models for each, we did not found any mediation
+effect of lifetime cannabis use at 18 years old related to the variables. Refer to the
+author of this document for more details on this analysis.
+
+```{r mediation-sex}
+#| eval: false
+# mediator (M): cannabis
+# exposure (X): sex
+# outcome (Y): bipolar
+
+df_mediation <-
+  df_model |>
+  mutate(
+    sex = case_when(sex == "Female" ~ 0,
+                    sex == "Male" ~ 1),
+    cannabis_at_18 = case_when(cannabis_at_18 == "No" ~ 0,
+                               cannabis_at_18 == "Yes" ~ 1),
+    skin_color = case_when(skin_color == "White" ~ 0,
+                           skin_color == "Non-white" ~ 1)
+  ) |>
+  filter(!is.na(sex), !is.na(cannabis_at_18), !is.na(outcome))
+  
+
+fit_m_sex <- glm(
+  cannabis_at_18 ~ sex,
+  data = df_mediation,
+  family = binomial
+)
+
+fit_y_sex <- glm(
+  outcome ~ sex + cannabis_at_18,
+  data = df_mediation,
+  family = binomial
+)
+
+fit_med_sex <- mediation::mediate(
+  model.m = fit_m_sex,
+  model.y = fit_y_sex,
+  treat = "sex",
+  mediator = "cannabis_at_18"
+)
+
+summary(fit_med_sex)
+
+plot(fit_med_sex)
+
+fit_med_sex_boot <- mediation::mediate(
+  model.m = fit_m_sex,
+  model.y = fit_y_sex,
+  boot = TRUE,
+  sims = 1000,
+  treat = "sex",
+  mediator = "cannabis_at_18"
+)
+
+summary(fit_med_sex_boot)
+
+plot(fit_med_sex_boot)
+```
+
+```{r mediation-skin-color}
+#| eval: false
+# mediator (M): cannabis
+# exposure (X): skin color
+# outcome (Y): bipolar
+
+fit_m_skin <- glm(
+  cannabis_at_18 ~ skin_color,
+  data = df_mediation,
+  family = binomial
+)
+
+fit_y_skin <- glm(
+  outcome ~ skin_color + cannabis_at_18,
+  data = df_mediation,
+  family = binomial
+)
+
+fit_med_skin <- mediation::mediate(
+  model.m = fit_m_skin,
+  model.y = fit_y_skin,
+  treat = "skin_color",
+  mediator = "cannabis_at_18"
+)
+
+summary(fit_med_skin)
+
+plot(fit_med_skin)
+
+fit_med_skin_boot <- mediation::mediate(
+  model.m = fit_m_skin,
+  model.y = fit_y_skin,
+  boot = TRUE,
+  sims = 1000,
+  treat = "skin_color",
+  mediator = "cannabis_at_18"
+)
+
+summary(fit_med_skin_boot)
+
+plot(fit_med_skin_boot)
+```
+
+```{r mediation-socio-status}
+#| eval: false
+# mediator (M): cannabis
+# exposure (X): socioeconomic status
+# outcome (Y): bipolar
+
+fit_m_socio <- glm(
+  cannabis_at_18 ~ asset_index_quintiles,
+  data = df_mediation,
+  family = binomial
+)
+
+fit_y_socio <- glm(
+  outcome ~ asset_index_quintiles + cannabis_at_18,
+  data = df_mediation,
+  family = binomial
+)
+
+fit_med_socio <- mediation::mediate(
+  model.m = fit_m_socio,
+  model.y = fit_y_socio,
+  treat = "asset_index_quintiles",
+  mediator = "cannabis_at_18"
+)
+
+summary(fit_med_socio)
+
+plot(fit_med_socio)
+
+fit_med_socio_boot <- mediation::mediate(
+  model.m = fit_m_socio,
+  model.y = fit_y_socio,
+  boot = TRUE,
+  sims = 1000,
+  treat = "asset_index_quintiles",
+  mediator = "cannabis_at_18"
+)
+
+summary(fit_med_socio_boot)
+
+plot(fit_med_socio)
+```
+
 ## What about cannabis use at 11 (and 15) years old?
 
 We fitted a logistic model (estimated using ML) to predict bipolar disorder with
